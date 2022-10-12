@@ -5,6 +5,7 @@
 
 #include <Servo.h>
 #include <SoftwareSerial.h>
+#include <stdlib.h>
 
 #define trigPin 7
 #define echoPin 6
@@ -75,6 +76,44 @@ int i3L2 = 0;
 int i4L2 = 0;
 int i5L2 = 0;
 int i6L2 = 0;
+
+int s15Init = 85;   // Head Roll
+int s14Init = 120;  // Head Pitch
+int s5Init = 30;    // Tail
+
+// RED side
+// Right
+int s16Init = 45;
+int s17Init = 75;
+int s18Init = 15;
+
+// Left
+int s19Init = 30;
+int s20Init = 90;
+int s21Init = 173;
+
+// Black side
+// Right
+int s22Init = 95;
+int s23Init = 35;
+int s24Init = 75;
+
+// Left
+int s12Init = 105;
+int s11Init = 140;
+int s10Init = 135;
+
+// Yellow side
+// Right
+int s8Init = 58;
+int s7Init = 39;
+int s6Init = 5;
+
+// Left
+int s4Init = 138;
+int s2Init = 150;
+int s1Init = 160;
+
 boolean l1status = LOW;
 boolean l2status = LOW;
 boolean aStatus = LOW;
@@ -92,11 +131,12 @@ int m = 0;
 int h = 0;
 int t = 0;
 int att = 0;
-int speedV = 30;
+int speedV = 20;
 
 void setup() {
-  Serial.begin(38400);
-  Bluetooth.begin(38400); // Default baud rate of the Bluetooth module
+  Serial.begin(9600);
+  Serial.println("Hello HUMAN");
+  Bluetooth.begin(9600); // Default baud rate of the Bluetooth module
   Bluetooth.setTimeout(1);
   delay(20);
   pinMode(trigPin, OUTPUT); // Sets the trigPin as an Output
@@ -114,12 +154,12 @@ void setup() {
   s17.attach(38, 600, 2400);
   s16.attach(37, 600, 2400); //rot
 
-   // Leg 2
+  // Leg 2
   s21.attach(42, 600, 2400);
   s20.attach(41, 600, 2400);
   s19.attach(40, 600, 2400); //rot
 
-    // Leg 3
+  // Leg 3
   s24.attach(45, 600, 2400);
   s23.attach(44, 600, 2400);
   s22.attach(43, 600, 2400); //rot
@@ -137,81 +177,117 @@ void setup() {
   s1.attach(22, 600, 2400);
   s2.attach(23, 600, 2400);
   s4.attach(25, 600, 2400); //rot
-   
+  
   initialPosition();
   delay(3000);
 }
 void loop() {
 
   // Check for incoming data
+  if (Bluetooth.available()){
+    Serial.print("data Bluetooth received: ");
+    //Serial.println(Bluetooth.read());
+    int number;
+    Bluetooth.readBytes((char*)&number, sizeof(number));
+    Serial.println(number);
+    dataIn = number;
+  }
   
-  if (Bluetooth.available() > 0) {
-    dataIn = Bluetooth.read();  // Read the data
-    if (dataIn == 2) {
-      Serial.println("dataIn 2");
-      m = 2;
-    }
-    if (dataIn == 3) {
-      Serial.println("dataIn 3");
-      m = 3;
-    }
-    if (dataIn == 4) {
-      Serial.println("dataIn 4");
-      m = 4;
-    }
-    if (dataIn == 5) {
-      Serial.println("dataIn 5");
-      m = 5;
-    }
-    if (dataIn == 10) {
-      Serial.println("dataIn 10");
-      t = 10;
-    }
-    if (dataIn == 11) {
-      Serial.println("dataIn 11");
-      h = 11;
-    }
-    if (dataIn >= 15) {
-      Serial.println("dataIn 15");
-      Serial.println(dataIn);
-      speedV = dataIn;
-    }
+  if (Serial.available() > 0) {
+    dataIn = Serial.readString().toInt();  // Read the data
+    Serial.print("data Serial received: ");
+    Serial.println(dataIn);
+  }
+  if (dataIn == -1) {
+    Serial.println("Rebooting");
+    m = -1;
+  }
+  if (dataIn == 0) {
+    Serial.println("dataIn 0 -- STOPPING");
+    m = 0;
+  }
+  if (dataIn == 2) {
+    Serial.println("dataIn 2");
+    m = 2;
+  }
+  if (dataIn == 3) {
+    Serial.println("dataIn 3");
+    m = 3;
+  }
+  if (dataIn == 4) {
+    Serial.println("dataIn 4");
+    m = 4;
+  }
+  if (dataIn == 5) {
+    Serial.println("dataIn 5");
+    m = 5;
+  }
+  if (dataIn == 10) {
+    Serial.println("dataIn 10");
+    t = 10;
+  }
+  if (dataIn == 11) {
+    Serial.println("dataIn 11");
+    h = 11;
+  }
+  
+  /*if (dataIn >= 15) {
+    Serial.println("dataIn 15");
+    Serial.println(dataIn);
+    speedV = dataIn;
+  }*/
+
+
+  
+
+  //return;
+  /*Serial.print("m: ");
+    Serial.println(m);
+
+    Serial.print("t: ");
+    Serial.println(t);
+
+
+    Serial.print("h: ");
+    Serial.println(h);*/
+  if (m == -1) {
+    initialPosition();
+    dataIn = 0;
   }
 
-  return;
   // Move forward
   if (m == 2) {
-    moveLeg1();
-    moveLeg3();
-    moveLeg5();
-    if (l1status == HIGH) {
-      moveLeg2();
-      moveLeg4();
-      moveLeg6();
-    }
+    moveLeg1Simple();
+    moveLeg4Simple();
+    moveLeg5Simple();
+      if (l1status == HIGH) {
+        moveLeg2Simple();
+        moveLeg3Simple();
+        moveLeg6Simple();
+      }
   }
   // Rotate left
   if (m == 3) {
     moveHeadLeft();
-    moveLeg1();
-    moveLeg3();
-    moveLeg5Left();
+    moveLeg1Simple();
+    moveLeg5Simple();
+    moveLeg4LeftSimple();
     if (l1status == HIGH) {
-      moveLeg2();
-      moveLeg4Left();
-      moveLeg6Left();
+      moveLeg3Simple();
+      moveLeg2LeftSimple();
+      moveLeg6LeftSimple();
     }
   }
   // Rotate right
   if (m == 4) {
     moveHeadRight();
-    moveLeg1Right();
-    moveLeg3Right();
-    moveLeg5();
+    moveLeg1RightSimple();
+    moveLeg5RightSimple();
+    moveLeg4Simple();
     if (l1status == HIGH) {
-      moveLeg2Right();
-      moveLeg4();
-      moveLeg6();
+      moveLeg3RightSimple();
+      moveLeg2Simple();
+      moveLeg6Simple();
     }
   }
   // Move reverse
@@ -226,7 +302,7 @@ void loop() {
     }
   }
   // Bite
-  if (dataIn == 6) {
+  /*/if (dataIn == 6) {
     bite();
   }
   // Attack
@@ -245,7 +321,7 @@ void loop() {
         } attStatus = LOW;
       }
     }
-  }
+  }*/
   // Grab
   if (dataIn == 8) {
     grab();
@@ -260,9 +336,9 @@ void loop() {
     tail();
   }
   // Head
-  if (h == 11) {
-    moveHead();
-  }
+  //if (h == 11) {
+  //  moveHead();
+  //}
 
   if (dataIn == 12) {
     initialPosTail();
@@ -270,32 +346,34 @@ void loop() {
   if (dataIn == 13) {
     initialPosHead();
   }
-  // Initial and resting position 
+  // Initial and resting position
   if (dataIn == 0) {
-    initialPosition();
+    //initialPosition();
 
     // Get the distance from the ultrasonic sensor
-    if (getDistance() > 40) {
+    /*if (getDistance() > 40) {
       att = 0;
-    }
-    if (getDistance() <= 40) {
+      }
+      if (getDistance() <= 40) {
       att = 1;
       dataIn = 99;
-    }
+      }*/
     // Monitor the battery voltage
-    int sensorValue = analogRead(A3);
-    float voltage = sensorValue * (5.00 / 1023.00) * 2.9; // Convert the reading values from 5v to suitable 12V i
-    Serial.println(voltage);
-    // If voltage is below 11V turn on the LED
-    if (voltage < 11) {
+    /*int sensorValue = analogRead(A3);
+      float voltage = sensorValue * (5.00 / 1023.00) * 2.9; // Convert the reading values from 5v to suitable 12V i
+      Serial.print("Voltage: ");
+      Serial.println(voltage);
+      // If voltage is below 11V turn on the LED
+      if (voltage < 11) {
       digitalWrite(ledB, HIGH);
-    }
-    else {
+      }
+      else {
       digitalWrite(ledB, LOW);
-    }
+      }*/
   }
+  
   // If there is an object in front of the sensor prepare for attack
-  if (att == 1) {
+  /*/if (att == 1) {
     prepareAttack();
     if (aStatus == HIGH) {
       while (a == 0) {
@@ -342,222 +420,24 @@ void loop() {
       att = 0;
       initialPosHead();
     }
-  }
+  }*/
+  
   delay(speedV);
 }
 
-// === ATTACK === //
-
-void prepareAttack() {
-  // LEG 1
-  if (i1H1 <= 15) {
-    //Leg 1
-    s18.write(60 - i1H1);
-    s17.write(90 - i1H1);
-    // Leg 3
-    s24.write(50 + i1H1 / 2);
-    s23.write(80 + i1H1);
-    // Leg 4
-    s10.write(65 + i1H1);
-    s11.write(35 + i1H1);
-    // Leg 6
-    s1.write(90 - i1H1);
-    s2.write(45 - i1H1);
-    // Head
-    s14.write(50 - i1H1 * 2);
-    s13.write(90 - i1H1);
-
-  }
-  if (i1H1 <= 30) {
-    s16.write(100 - i1H1);
-    s19.write(75 - i1H1);
-    s22.write(80 - i1H1);
-    s12.write(35 + i1H1);
-    s9.write(30 + i1H1);
-    s4.write(60 + i1H1);
-    i1H1++;
-  }
-  if (i1H1 >= 30) {
-    aStatus = HIGH;
-  }
-}
-
-void dismissAttack() {
-  // LEG 1
-  if (i2H1 <= 15) {
-    //Leg 1
-    s18.write(45 + i2H1);
-    s17.write(75 + i2H1);
-    // Leg 3
-    s24.write(57 - i2H1 / 2);
-    s23.write(95 - i2H1);
-    // Leg 4
-    s10.write(80 - i2H1);
-    s11.write(50 - i2H1);
-    // Leg 6
-    s1.write(75 + i2H1);
-    s2.write(30 + i2H1);
-    // Head
-    s14.write(20 + i2H1 * 2);
-    s13.write(75 + i2H1);
-  }
-  if (i2H1 <= 30) {
-    s16.write(70 + i2H1);
-    s19.write(45 + i2H1);
-    s22.write(50 + i2H1);
-    s12.write(65 - i2H1);
-    s9.write(60 - i2H1);
-    s4.write(90 - i2H1);
-    i2H1++;
-  }
-  if (i2H1 >= 30) {
-    aStatus = HIGH;
-  }
-}
-
-void attack() {
-  // LEG 1
-  if (i3H1 <= 10) {
-    //Leg 1
-    s18.write(45 + i3H1 * 2);
-    s17.write(75 + i3H1 * 3);
-    // Leg 3
-    s24.write(57 - i3H1 / 2);
-    s23.write(95 - i3H1 * 3);
-    // Leg 4
-    s10.write(80 - i3H1 * 2);
-    s11.write(50 - i3H1 * 3);
-    // Leg 6
-    s1.write(75 + i3H1 * 2);
-    s2.write(30 + i3H1 * 3);
-    // Head
-    s14.write(20 + i3H1 * 2);
-    s13.write(75 + i3H1 * 3);
-  }
-  if (i3H1 <= 16) {
-    s16.write(70 + i3H1 * 3);
-    s19.write(45 + i3H1 * 3);
-    s22.write(50 + i3H1 * 3);
-    s12.write(65 - i3H1 * 3);
-    s9.write(60 - i3H1 * 3);
-    s4.write(90 - i3H1 * 3);
-    i3H1++;
-  }
-  if (i3H1 >= 16) {
-    attStatus = HIGH;
-  }
-  if (i3H1 >= 16 & i4H1 < 15) {
-    //Leg 1
-    s18.write(65 - i4H1 / 3);
-    s17.write(105 - i4H1);
-    // Leg 3
-    //s24.write(50 + i4H1 / 2);
-    s23.write(65 + i4H1);
-    // Leg 4
-    s10.write(60 + i4H1 / 3);
-    s11.write(20 + i4H1);
-    // Leg 6
-    s1.write(95 - i4H1 / 5);
-    s2.write(60 - i4H1);
-    // Head
-    s14.write(40 + i4H1 / 2);
-    s13.write(105 - i4H1);
-  }
-  if (i3H1 >= 16 & i4H1 <= 18) {
-    s16.write(118 - i4H1);
-    s19.write(93 - i4H1);
-    s22.write(98 - i4H1);
-    s12.write(17 + i4H1);
-    s9.write(12 + i4H1);
-    s4.write(42 + i4H1);
-    i4H1++;
-  }
-  if (i4H1 >= 18) {
-    aStatus = HIGH;
-  }
-}
-
-void moveHead() {
-  if (i0H1 <= 40) {
-    s15.write(72 + i0H1);
-    i0H1++;
-  }
-  if (i0H1 >= 40 & i1H1 <= 40) {
-    s14.write(50 - i1H1 / 2);
-    s15.write(112 - i1H1);
-    i1H1++;
-  }
-  if (i1H1 >= 40 & i2H1 <= 20) {
-    s13.write(90 - i2H1);
-    i2H1++;
-  }
-  if (i2H1 >= 20 & i3H1 <= 10) {
-    s13.write(70 + i3H1 * 4);
-    i3H1++;
-  }
-  if (i3H1 >= 10 & i4H1 <= 40) {
-    s13.write(110 - i4H1);
-    i4H1++;
-  }
-  if (i4H1 >= 40 & i5H1 <= 10) {
-    s13.write(70 + i5H1 * 4);
-    i5H1++;
-  }
-  if (i5H1 >= 10 & i6H1 <= 20) {
-    s13.write(110 - i6H1);
-    i6H1++;
-  }
-  if (i6H1 >= 20 & i7H1 <= 40) {
-    s14.write(30 + i7H1 / 2);
-    s15.write(72 - i7H1);
-    i7H1++;
-  }
-  if (i7H1 >= 40 & i8H1 <= 40) {
-    s15.write(32 + i8H1);
-    i8H1++;
-  }
-}
-
-void bite() {
-  if (i1H1 <= 20) {
-    s13.write(90 - i1H1);
-    i1H1++;
-  }
-  if (i1H1 >= 20 & i2H1 <= 10) {
-    s13.write(70 + i2H1 * 4);
-    i2H1++;
-  }
-  if (i2H1 >= 10 & i3H1 <= 40) {
-    s13.write(110 - i3H1);
-    i3H1++;
-  }
-  if (i3H1 >= 40 & i4H1 <= 10) {
-    s13.write(70 + i4H1 * 4);
-    i4H1++;
-  }
-  if (i4H1 >= 10 & i5H1 <= 40) {
-    s13.write(110 - i5H1);
-    i5H1++;
-  }
-  if (i5H1 >= 40 & i6H1 <= 20) {
-    s13.write(70 + i6H1);
-    i6H1++;
-  }
-}
-
 void moveHeadLeft() {
-  if (i0H1 <= 25) {
-    s14.write(50 - i0H1);
-    s15.write(72 - i0H1);
-    s5.write(65 + i0H1); // Tail
+  if (i0H1 <= 35) {
+    s14.write(s14Init - i0H1);
+    s15.write(s15Init - i0H1);
+    s5.write(s5Init + i0H1); // Tail
     i0H1++;
   }
 }
 void moveHeadRight() {
-  if (i2H1 <= 25) {
-    s14.write(50 - i2H1);
-    s15.write(72 + i2H1);
-    s5.write(65 - i2H1); // Tail
+  if (i2H1 <= 35) {
+    s14.write(s14Init - i2H1);
+    s15.write(s15Init + i2H1);
+    s5.write(s5Init - i2H1); // Tail
     i2H1++;
   }
 }
@@ -576,64 +456,49 @@ void drop() {
 }
 
 void tail() {
-  if (i0T1 <= 25) {
-    s5.write(65 - i0T1);
+  if (i0T1 <= 45) {
+    s5.write(s5Init - i0T1);
     i0T1++;
   }
-  if ( i0T1 >= 25 & i1T1 <= 50) {
-    s5.write(40 + i1T1);
+  if ( i0T1 >= 45 & i1T1 <= 60) {
+    s5.write(0 + i1T1);
     i1T1++;
   }
-  if ( i1T1 >= 50 & i2T1 <= 50) {
-    s5.write(90 - i2T1);
+
+  if (i1T1 >= 60) {
+    s5.write(60 - i2T1);
     i2T1++;
   }
-  if ( i2T1 >= 50 & i3T1 <= 50) {
-    s5.write(40 + i3T1);
-    i3T1++;
+
+  if (i2T1 >= 30) {
+    i0T1 = 0;
+    i1T1 = 0;
+    i2T1 = 0;
   }
-  if ( i3T1 >= 50 & i4T1 <= 50) {
-    s5.write(90 - i4T1);
-    i4T1++;
-  }
-  if ( i4T1 >= 50 & i5T1 <= 50) {
-    s5.write(40 + i5T1);
-    i5T1++;
-  }
-  if ( i5T1 >= 50 & i6T1 <= 25) {
-    s5.write(90 - i6T1);
-    i6T1++;
-  }
+
 }
 
-void moveLeg1() {
-  // Swign phase - move leg though air - from initial to final position
-  // Rise the leg
+void moveLeg1Simple() {
   if (i1L1 <= 10) {
-    s18.write(60 - i1L1 * 2);
-    s17.write(90 - i1L1 * 3);
+    s17.write(s17Init);
     i1L1++;
   }
-  // Rotate the leg
   if (i2L1 <= 30) {
-    s16.write(100 - i2L1);
+    s16.write(s16Init - 20 + i2L1);
+    Serial.println(s16.read());
     i2L1++;
-
   }
-  // Move back to touch the ground
-  if (i2L1 > 20 & i3L1 <= 10) {
-    s18.write(40 + i3L1 * 2);
-    s17.write(60 + i3L1 * 3);
+
+  if (i2L1 > 28 & i3L1 <= 10) {
+    s17.write(s17Init - 30);
     i3L1++;
   }
-  // Stance phase - move leg while touching the ground
-  // Rotate back to initial position
+  
   if (i2L1 >= 30) {
-    s16.write(70 + i4L1);
+    s16.write(s16Init - i4L1);
     i4L1++;
     l1status = HIGH;
   }
-  // Reset the counters for repeating the process
   if (i4L1 >= 30) {
     i1L1 = 0;
     i2L1 = 0;
@@ -641,8 +506,128 @@ void moveLeg1() {
     i4L1 = 0;
     i5L1 = 0;
   }
-  // Each iteration or step is executed in the main loop section where there is also a delay time for controlling the speed of movement
 }
+
+void moveLeg1RightSimple() {
+  if (i1L1 <= 10) {
+    s17.write(s17Init);
+    i1L1++;
+  }
+  if (i2L1 <= 30) {
+    s16.write(s16Init - i2L1);
+    i2L1++;
+  }
+
+  if (i2L1 > 28 & i3L1 <= 10) {
+    s17.write(s17Init - 20);
+    i3L1++;
+  }
+  
+  if (i2L1 >= 30) {
+    s16.write(s16Init - 20 + i4L1);
+    i4L1++;
+    l1status = HIGH;
+  }
+  if (i4L1 >= 30) {
+    i1L1 = 0;
+    i2L1 = 0;
+    i3L1 = 0;
+    i4L1 = 0;
+    i5L1 = 0;
+  }
+}
+
+
+void moveLeg1() {
+  if (i1L1 <= 10) {
+    s18.write(30 - i1L1 * 2);
+    s17.write(90 - i1L1 * 3);
+    i1L1++;
+  }
+  if (i2L1 <= 30) {
+    s16.write(50 - i2L1);
+    i2L1++;
+
+  }
+  if (i2L1 > 20 & i3L1 <= 10) {
+    s18.write(40 + i3L1 * 2);
+    s17.write(60 + i3L1 * 3);
+    i3L1++;
+  }
+  if (i2L1 >= 30) {
+    s16.write(20 - i4L1);
+    i4L1++;
+    l1status = HIGH;
+  }
+  if (i4L1 >= 30) {
+    i1L1 = 0;
+    i2L1 = 0;
+    i3L1 = 0;
+    i4L1 = 0;
+    i5L1 = 0;
+  }
+}
+
+
+void moveLeg2Simple() {
+  if (i1L2 <= 10) {
+    s20.write(s20Init);
+    i1L2++;
+  }
+  if (i1L2 <= 30) {
+    s19.write(s19Init + 30 - i2L2);
+    i2L2++;
+  }
+
+  if (i2L2 > 28 & i3L2 <= 10) {
+    s20.write(s20Init + 20);
+    i3L2++;
+  }
+  
+  if (i2L2 >= 30) {
+    s19.write(s19Init + i4L2);
+    i4L2++;
+    l1status = HIGH;
+  }
+  if (i4L2 >= 30) {
+    i1L2 = 0;
+    i2L2 = 0;
+    i3L2 = 0;
+    i4L2 = 0;
+    i5L2 = 0;
+  }
+}
+
+void moveLeg2LeftSimple() {
+  if (i1L2 <= 10) {
+    s20.write(s20Init);
+    i1L2++;
+  }
+  if (i1L2 <= 30) {
+    s19.write(s19Init + i2L2);
+    i2L2++;
+  }
+
+  if (i2L2 > 28 & i3L2 <= 10) {
+    s20.write(s20Init + 20);
+    i3L2++;
+  }
+  
+  if (i2L2 >= 30) {
+    s19.write(s19Init + 30 - i4L2);
+    i4L2++;
+    l1status = HIGH;
+  }
+  if (i4L2 >= 30) {
+    i1L2 = 0;
+    i2L2 = 0;
+    i3L2 = 0;
+    i4L2 = 0;
+    i5L2 = 0;
+  }
+}
+
+// Each iteration or step is executed in the main loop section where there is also a delay time for controlling the speed of movement
 void moveLeg2() {
   if (i1L2 <= 10) {
     s21.write(50 - i1L2 * 2);
@@ -672,6 +657,37 @@ void moveLeg2() {
   }
 }
 
+void moveLeg3RightSimple() {
+  if (i1L1 <= 10) {
+    s23.write(s23Init - 30);
+  }
+  if (i2L1 <= 30) {
+    s22.write(s22Init -10 + i2L1);
+  }
+  if (i2L1 > 28 & i3L1 <= 10) {
+    s23.write(s23Init);
+  }
+  if (i2L1 >= 30) {
+    s22.write(s22Init +10 - i4L1);
+  }
+}
+
+void moveLeg3Simple() {
+  if (i1L1 <= 10) {
+    s23.write(s23Init - 30);
+  }
+  if (i2L1 <= 30) {
+    s22.write(s22Init + 30 - i2L1);
+  }
+  if (i2L1 > 28 & i3L1 <= 10) {
+    s23.write(s23Init);
+  }
+  if (i2L1 >= 30) {
+    s22.write(s22Init + i4L1);
+  }
+}
+
+
 void moveLeg3() {
   if (i1L1 <= 10) {
     s24.write(50 - i1L1 * 2);
@@ -689,6 +705,41 @@ void moveLeg3() {
     s22.write(50 + i4L1);
   }
 }
+
+void moveLeg4LeftSimple() {
+  if (i1L1 <= 10) {
+    s11.write(s11Init);
+  }
+  if (i2L1 <= 30) {
+    s12.write(s12Init - 30 + i2L1);
+  }
+  
+  if (i2L1 > 28 & i3L1 <= 10) {
+    s11.write(s11Init + 20);
+  }
+  if (i2L1 >= 30) {
+    s12.write(s12Init - i4L1);
+  }
+}
+
+
+
+void moveLeg4Simple() {
+  if (i1L1 <= 10) {
+    s11.write(s11Init);
+  }
+  if (i2L1 <= 30) {
+    s12.write(s12Init - i2L1);
+  }
+  
+  if (i2L1 > 28 & i3L1 <= 10) {
+    s11.write(s11Init + 20);
+  }
+  if (i2L1 >= 30) {
+    s12.write(s12Init - 30 + i4L1);
+  }
+}
+
 
 void moveLeg4() {
   if (i1L2 <= 10) {
@@ -708,6 +759,39 @@ void moveLeg4() {
   }
 }
 
+void moveLeg5Simple() {
+  if (i1L1 <= 10) {
+    s7.write(s7Init);
+  }
+  if (i2L1 <= 30) {
+    s8.write(s8Init + i2L1);
+  }
+  
+  if (i2L1 > 28 & i3L1 <= 10) {
+    s7.write(s7Init - 10);
+  }
+  if (i2L1 >= 30) {
+    s8.write(s8Init + 30 - i4L1);
+  }
+}
+
+void moveLeg5RightSimple() {
+  if (i1L1 <= 10) {
+    s7.write(s7Init);
+  }
+  if (i2L1 <= 30) {
+    s8.write(s8Init + 30 - i2L1);
+  }
+  
+  if (i2L1 > 28 & i3L1 <= 10) {
+    s7.write(s7Init - 10);
+  }
+  if (i2L1 >= 30) {
+    s8.write(s8Init + i4L1);
+  }
+}
+
+
 void moveLeg5() {
   if (i1L1 <= 10) {
     s7.write(80 + i1L1 * 2);
@@ -725,6 +809,40 @@ void moveLeg5() {
     s9.write(60 - i4L1);
   }
 }
+
+
+void moveLeg6LeftSimple() {
+  if (i1L2 <= 10) {
+    s2.write(s2Init);
+  }
+  if (i2L2 <= 30) {
+    s4.write(s4Init -30 + i2L2);
+  }
+  if (i2L2 > 28 & i3L2 <= 10) {
+    s2.write(s2Init + 20);
+  }
+  if (i2L2 >= 30) {
+    s4.write(s4Init - i4L2);
+  }
+}
+
+
+void moveLeg6Simple() {
+  if (i1L2 <= 10) {
+    s2.write(s2Init);
+  }
+  if (i2L2 <= 30) {
+    s4.write(s4Init - i2L2);
+  }
+  if (i2L2 > 28 & i3L2 <= 10) {
+    s2.write(s2Init + 20);
+  }
+  if (i2L2 >= 30) {
+    s4.write(s4Init - 30 + i4L2);
+  }
+}
+
+
 
 void moveLeg6() {
   if (i1L2 <= 10) {
@@ -744,35 +862,41 @@ void moveLeg6() {
 }
 
 void moveLeg1Rev() {
+  // Swign phase - move leg though air - from initial to final position
+  // Rise the leg
   if (i1L1 <= 10) {
     s18.write(60 - i1L1 * 2);
     s17.write(90 - i1L1 * 3);
-    Serial.println(s17.read());
     i1L1++;
   }
-  if (i2L1 <= 30) {
-    s16.write(70 + i2L1);
+  // Rotate the leg
+  if (i2L1 <= 21) {
+    s16.write(100 - i2L1);
     i2L1++;
 
   }
+  // Move back to touch the ground
   if (i2L1 > 20 & i3L1 <= 10) {
-    s18.write(40 + i3L1 * 2);
+    s18.write(-40 + i3L1 * 2);
     s17.write(60 + i3L1 * 3);
-    Serial.println(s17.read());
     i3L1++;
   }
-  if (i2L1 >= 30) {
-    s16.write(100 - i4L1);
+  // Stance phase - move leg while touching the ground
+  // Rotate back to initial position
+  if (i2L1 >= 20) {
+    s16.write(70 - i4L1);
     i4L1++;
     l1status = HIGH;
   }
-  if (i4L1 >= 30) {
+  // Reset the counters for repeating the process
+  if (i4L1 >= 60) {
     i1L1 = 0;
     i2L1 = 0;
     i3L1 = 0;
     i4L1 = 0;
     i5L1 = 0;
   }
+
 }
 void moveLeg2Rev() {
   if (i1L2 <= 10) {
@@ -1038,31 +1162,36 @@ void initialPosition() {
   l2status = LOW;
   aStatus = LOW;
   attStatus = LOW;
-  
-  s15.write(90);
-  s14.write(140);
+
+  s15.write(s15Init);
+  s14.write(s14Init);
   //s13.write(90);
-  s5.write(45);
-  s16.write(20);
-  s17.write(115);
-  s18.write(0);
-  s19.write(50);
-  s20.write(70);
-  s21.write(140);
-  s22.write(100);
-  s23.write(25);
-  s24.write(120);
+  s5.write(s5Init);
   
-  s12.write(110);
-  s11.write(175);
-  s10.write(93);
-  s8.write(80);
-  s7.write(0);
-  s6.write(0);
-  s1.write(165);
-  s2.write(180);
-  s4.write(120);
+  s16.write(s16Init);
+  s17.write(s17Init);
+  s18.write(s18Init);
   
+  s19.write(s19Init);
+  s20.write(s20Init);
+  s21.write(s21Init);
+  
+  s22.write(s22Init);
+  s23.write(s23Init);
+  s24.write(s24Init);
+
+  s12.write(s12Init);
+  s11.write(s11Init);
+  s10.write(s10Init);
+  
+  s8.write(s8Init);
+  s7.write(s7Init);
+  s6.write(s6Init);
+  
+  s4.write(s4Init);
+  s2.write(s2Init);
+  s1.write(s1Init);
+
   i0H1 = 0;
   i1H1 = 0;
   i2H1 = 0;

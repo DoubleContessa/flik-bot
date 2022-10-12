@@ -41,6 +41,14 @@ Servo s4;
 int pos = 0;    // variable to store the servo position
 int myservo_angle = 0;
 
+int angle_to_speed(Servo s, double angle)
+{
+  s.write(180);
+  double delay_ = (angle * 870) / 180;
+  delay(delay_);
+  s.write(90);
+}
+
 void setup() {
   Serial.begin(38400);
   delay(20);
@@ -48,7 +56,7 @@ void setup() {
   // Head
   s15.attach(36, 600, 2400);
   s14.attach(35, 600, 2400);
-  //s13.attach(34, 600, 2400); //grip
+  s13.attach(34, 600, 2400); //grip
   // Tail
   s5.attach(26, 600, 2400); // Tail
 
@@ -83,14 +91,14 @@ void setup() {
   
   s15.write(90);
   s14.write(140);
-  //s13.write(90);
+  s13.write(90);
   s5.write(45);
   s16.write(20);
   s17.write(115);
   s18.write(0);
-  s19.write(50);
-  s20.write(70);
-  s21.write(140);
+  //s19.write(90);
+  //s20.write(70);
+  //s21.write(140);
   s22.write(100);
   s23.write(25);
   s24.write(120);
@@ -109,9 +117,15 @@ void setup() {
 }
 
 void loop() {
-  myservo_angle = s18.read();
+  myservo_angle = s19.read();
   
-  //s18.write(myservo_angle - 1);
+  //s19.write(90);
+  //delay(1000);
+
+  //angle_to_speed(s19,90);
+  //delay(3000);
+
+  //s19.write(myservo_angle - 1);
   //Serial.println(myservo_angle - 1);
-  delay(700);   
+  //delay(2000);   
 }
